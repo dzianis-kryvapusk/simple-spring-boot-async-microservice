@@ -1,0 +1,6 @@
+max-pool-size: 1
+third-party-api:
+  joke:
+    host: http://localhost:1080
+    path: /random_joke
+    timeout: 5
