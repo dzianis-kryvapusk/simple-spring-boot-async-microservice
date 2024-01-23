@@ -1,15 +1,16 @@
 package com.example.jokemicroservice.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.jokemicroservice.config.ThirdPartyApiJokeProperties;
 import com.example.jokemicroservice.dto.JokeDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.HttpStatusCode;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class JokeControllerTest {
-    private static ClientAndServer mockServer;
+    private static MockServerClient mockServer;
     @Autowired
     private ThirdPartyApiJokeProperties jokeApiProperties;
     @Autowired
@@ -44,6 +45,11 @@ class JokeControllerTest {
         mockServer = startClientAndServer(1080);
     }
 
+    @AfterEach
+    void resetServer() {
+        mockServer.reset();
+    }
+
     @AfterAll
     static void stopServer() {
         mockServer.stop();
@@ -52,24 +58,28 @@ class JokeControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void test_getJokes_successful() throws Exception {
-        try (var mockServerClient = new MockServerClient("localhost", 1080)) {
-            for (int i = 1; i <= 5; i++) {
-                JokeDto joke = buildJoke(i);
-                //TODO fix mock server returning only the first joke
-                mockServerClient.when(request().withMethod(HttpMethod.GET.name()).withPath(jokeApiProperties.getPath()), once())
-                        .respond(response().withStatusCode(HttpStatusCode.OK_200.code())
-                                         .withContentType(org.mockserver.model.MediaType.APPLICATION_JSON)
-                                         .withBody(objectMapper.writeValueAsString(joke)));
-            }
-
-            List<JokeDto> response = (List<JokeDto>) api
-                    .perform(get("/jokes")
-                                     .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andReturn().getAsyncResult();
-            assertNotNull(response);
-            assertEquals(5, response.size());
+        List<JokeDto> expected = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            JokeDto joke = buildJoke(i);
+            expected.add(joke);
+            //TODO fix mock server returning only the first joke
+            mockServer.when(request()
+                                    .withMethod(HttpMethod.GET.name())
+                                    .withPath(jokeApiProperties.getPath()),
+                            once())
+                    .respond(response()
+                                     .withStatusCode(HttpStatusCode.OK_200.code())
+                                     .withContentType(org.mockserver.model.MediaType.APPLICATION_JSON)
+                                     .withBody(objectMapper.writeValueAsString(joke)));
         }
+        List<JokeDto> response = (List<JokeDto>) api
+                .perform(get("/jokes")
+                                 .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn().getAsyncResult();
+        assertNotNull(response);
+        assertEquals(5, response.size());
+        assertEquals(expected, response);
     }
 
     @Test
