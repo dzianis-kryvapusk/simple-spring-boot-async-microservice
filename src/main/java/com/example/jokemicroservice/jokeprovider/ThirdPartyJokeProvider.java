@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 import com.example.jokemicroservice.config.ThirdPartyApiJokeProperties;
 import com.example.jokemicroservice.dto.JokeDto;
@@ -60,6 +61,11 @@ public class ThirdPartyJokeProvider implements JokeProvider {
         CompletableFuture<List<JokeDto>> baseFuture = CompletableFuture.completedFuture(new ArrayList<>(number));
         for (int i = 0; i < number; i++) {
             CompletableFuture<JokeDto> foundJoke = getJokeAsync();
+//            try {
+//                TimeUnit.MILLISECONDS.sleep(100);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
             baseFuture = baseFuture.thenCombine(foundJoke, (acc, response) -> {
                 acc.add(response);
                 return acc;
