@@ -1,6 +1,7 @@
 package com.example.jokemicroservice.controller;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import com.example.jokemicroservice.config.ThirdPartyApiJokeProperties;
@@ -79,6 +80,7 @@ class JokeControllerTest {
                 .andReturn().getAsyncResult();
         assertNotNull(response);
         assertEquals(5, response.size());
+        response.sort(Comparator.comparing(JokeDto::getId));
         assertEquals(expected, response);
     }
 
